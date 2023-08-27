@@ -1,41 +1,50 @@
 const router = require("express").Router();
-const User = require("../models/User");
+const User = require("../models/User"); // Assuming this is where your User model is defined
 const bcrypt = require("bcrypt");
 
-//REGISTER
-router.post("/register", async (req, res) => {
+// REGISTER
+router.post("/reg", async (req, res) => {
   try {
-    //generate new password
+    // Generate new password hash
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
-    //create new user
+    // Create a new user
     const newUser = new User({
       username: req.body.username,
       email: req.body.email,
       password: hashedPassword,
     });
 
-    //save user and respond
-    const user = await newUser.save();
-    res.status(200).json(user);
+    // Save user to the database
+    const savedUser = await newUser.save();
+
+    // Respond with the saved user data
+    res.status(200).json(savedUser);
   } catch (err) {
-    res.status(500).json(err)
+    res.status(500).json(err);
   }
 });
 
-//LOGIN
+// LOGIN
 router.post("/login", async (req, res) => {
   try {
+    // Find user by email
     const user = await User.findOne({ email: req.body.email });
-    !user && res.status(404).json("user not found");
+    if (!user) {
+      return res.status(404).json("User not found");
+    }
 
-    const validPassword = await bcrypt.compare(req.body.password, user.password)
-    !validPassword && res.status(400).json("wrong password")
+    // Compare passwords
+    const validPassword = await bcrypt.compare(req.body.password, user.password);
+    if (!validPassword) {
+      return res.status(400).json("Wrong password");
+    }
 
-    res.status(200).json(user)
+    // Respond with the user data
+    res.status(200).json(user);
   } catch (err) {
-    res.status(500).json(err)
+    res.status(500).json(err);
   }
 });
 
